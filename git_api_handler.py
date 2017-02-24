@@ -5,6 +5,7 @@ from utc_to_local import *
 days_to_count = 7
 grab_commits_qty = 15
 
+
 def handle_api_datas(user_id, credentials, repo_name):
     all_commits_details_file = 'api_jsons/' + repo_name + '-' + 'all_commits_details.json'
     all_commits_details_file_sorted = 'api_jsons/' + repo_name + '-' + 'all_commits_sorted.json'
@@ -42,6 +43,7 @@ def handle_api_datas(user_id, credentials, repo_name):
                                      + more_sha_json[new_commit]['sha'] + credentials
             single_commit_json_deb = api_url + "repos/" + user_id + "/" + repo_name + "/commits/" \
                                      + more_sha_json[new_commit]['sha']
+            # print single_commit_json_url
             print "Getting commit: \"%s\"" % more_sha_json[new_commit]["commit"]["message"]  # For debug purpose
             single_commit_info = get_json_url(single_commit_json_url)
             all_json.append(single_commit_info)  # append all JSONs into a list
@@ -93,6 +95,10 @@ def handle_api_datas(user_id, credentials, repo_name):
     del sorted_commits
     sorted_commits = date_sorted_commits
 
+    # with open("output_jsons/test_dump.json", 'wb') as filtered_one:
+    #     json.dump(sorted_commits, filtered_one)
+    #     filtered_one.close()
+
     list_users = [None] * contrib_involved
 
     # ---- Collect user info ---
@@ -103,11 +109,14 @@ def handle_api_datas(user_id, credentials, repo_name):
             "lines_added_total": None,
             "lines_deleted_total": None,
             "files_changed_total": None,
+            "file_exceed": None,
             "commits": [None]
         }
         list_users[user] = dict_user_templ
         lines_added = 0
         lines_deleted = 0
+        lines_added_accm = 0
+        lines_deleted_accm = 0
         files_changed = 0
         list_commit = []
         for commit in range(0, len(sorted_commits)):  # contrib_involved
@@ -124,8 +133,8 @@ def handle_api_datas(user_id, credentials, repo_name):
                 files_changed += no_of_flies_changed
                 list_changed_files = []
                 for file in range(0, no_of_flies_changed):
-                    lines_added += int(sorted_commits[commit]["files"][file]["additions"])
-                    lines_deleted += int(sorted_commits[commit]["files"][file]["deletions"])
+                    lines_added_accm += int(sorted_commits[commit]["files"][file]["additions"])
+                    lines_deleted_accm += int(sorted_commits[commit]["files"][file]["deletions"])
                     dict_file_templ = {
                         "file_name": sorted_commits[commit]["files"][file]["filename"],
                         "status": sorted_commits[commit]["files"][file]["status"],
@@ -138,12 +147,23 @@ def handle_api_datas(user_id, credentials, repo_name):
                 dict_commit_templ["files"] = list_changed_files
                 del list_changed_files
                 list_commit.append(dict_commit_templ)
+
+                lines_added += int(sorted_commits[commit]["stats"]["additions"])
+                lines_deleted += int(sorted_commits[commit]["stats"]["deletions"])
                 pass
-        list_users[user]["commits"] = list_commit
+
         list_users[user]["lines_added_total"] = lines_added
         list_users[user]["lines_deleted_total"] = lines_deleted
         list_users[user]["files_changed_total"] = files_changed
-        del list_commit, lines_added, lines_deleted, files_changed
+        list_users[user]["commits"] = list_commit
+
+        # ---- Identify whether changed files are only 300 or more
+        if (lines_added_accm > lines_added or lines_added_accm > lines_deleted) and (files_changed >= 300):
+            list_users[user]["file_exceed"] = True
+        else:
+            list_users[user]["file_exceed"] = False
+            pass
+        del list_commit, lines_added, lines_deleted, files_changed, lines_added_accm, lines_deleted_accm
         pass
     pass
     del sorted_commits

@@ -28,12 +28,24 @@ class CSV:
                     total_users = len(user_details_raw)
 
                     for user in range(0, total_users):
-                        csv_file_writer.writerow({
-                            "User": user_details_raw[user]["user"],
-                            "Total files changed": user_details_raw[user]["files_changed_total"],
-                            "Total lines added": user_details_raw[user]["lines_added_total"],
-                            "Total lines deleted": user_details_raw[user]["lines_deleted_total"],
-                        })
+
+                        if user_details_raw[user]["file_exceed"]:
+                            csv_file_writer.writerow({
+                                "User": user_details_raw[user]["user"],
+                                "Total files changed": ">" + str(user_details_raw[user]["files_changed_total"]),
+                                "Total lines added": user_details_raw[user]["lines_added_total"],
+                                "Total lines deleted": user_details_raw[user]["lines_deleted_total"],
+                            })
+                        else:
+                            csv_file_writer.writerow({
+                                "User": user_details_raw[user]["user"],
+                                "Total files changed": user_details_raw[user]["files_changed_total"],
+                                "Total lines added": user_details_raw[user]["lines_added_total"],
+                                "Total lines deleted": user_details_raw[user]["lines_deleted_total"],
+                            })
+                            pass
+
+
                         pass
 
         report_csv_file.close()

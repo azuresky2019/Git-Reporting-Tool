@@ -28,7 +28,13 @@ class HTML:
                     list_html_data = [None] * len(self.table_header)
                     list_html_data[0] = project_name
                     list_html_data[1] = user_name
-                    list_html_data[2] = str(user_details[user]["files_changed_total"])
+
+                    if user_details[user]["file_exceed"]:
+                        list_html_data[2] = ">" + str(user_details[user]["files_changed_total"])
+                    else:
+                        list_html_data[2] = str(user_details[user]["files_changed_total"])
+                        pass
+
                     list_html_data[3] = str(user_details[user]["lines_added_total"])
                     list_html_data[4] = str(user_details[user]["lines_deleted_total"])
                     list_commits.append(list_html_data)

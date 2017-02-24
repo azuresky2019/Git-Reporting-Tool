@@ -7,11 +7,12 @@ from email import Encoders
 class Email:
     def __init__(self):
         self.sender_addr = "tech_temco@outlook.com"
-        self.sender_pass = ""
+        self.sender_pass = "Techtemc0"
         self.sender_smtp_serv = "smtp.live.com"
         self.sender_smtp_serv_port = 587
-        self.recipients = list(["maurice@temcocontrols.com", "er.rajuregmi@gmail.com"])
-        self.subject = "Weekly Git report"
+        self.recipients = list(["subedilomas@gmail.com", "er.rajuregmi@gmail.com"])
+        # self.recipients = "subedilomas@gmail.com"
+        self.subject = "Git report"
         self.body = "Please find the attached git report."
 
     def email_report(self, attach_file_path, attach_file_name, table_html):
