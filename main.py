@@ -16,17 +16,7 @@ def main():
     # client_id = argv[2]
     # client_secret = argv[3]
 
-    # ------ My git secrets ------------
-    usr = "lomassubedi"
-    client_id = "b6d44a3c6be9d41d5a84"
-    client_secret = "9c54db3cbcc716e9991b696782aae8b715d49e1c"
-    # --------------------------------------
-
-    # ----------- Temco Controls ---------------
-    # usr = "temcocontrols"
-    # client_id = "f648725de5a50e0b04f0"
-    # client_secret = "350ef686de82c4a8da4fac161cc1f333820e4b4d"
-    # -------------------------------------------
+    
 
     append_credentials = '?client_id=' + client_id + '&client_secret=' + client_secret
 
