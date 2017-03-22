@@ -1,5 +1,6 @@
 import requests
 
+
 def connectivity(dummy_url, timeout):
     try:
         _ = requests.get(dummy_url, timeout=timeout)
@@ -15,6 +16,7 @@ def auth_to_me(git_url, user, pass_wrd):
         return True
     else:
         return False
+
 
 def get_json_url(git_url):
     json_get = requests.get(git_url)

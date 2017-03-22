@@ -1,0 +1,12 @@
+Project Name,Checkpoint Name,Created On,File Name,Lines,Statements,Percent Branch Statements,Percent Lines with Comments,Functions,Average Statements per Function,Line Number of Most Complex Function*,Name of Most Complex Function*,Complexity of Most Complex Function*,Line Number of Deepest Block,Maximum Block Depth,Average Block Depth,Average Complexity*,Statements at block level 0,Statements at block level 1,Statements at block level 2,Statements at block level 3,Statements at block level 4,Statements at block level 5,Statements at block level 6,Statements at block level 7,Statements at block level 8,Statements at block level 9
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,gargabe_code.c,75,0,0.0,0.0,0,0.0,{undefined},,0,0,0,0.00,0.00,0,0,0,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,main.c,374,218,28.0,27.5,4,43.0,150,main(),38,225,7,2.87,12.00,46,35,16,22,35,35,25,4,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,non_intr_multich_read.c,46,21,9.5,41.3,3,6.0,17,adc_read(),2,31,2,0.95,1.67,3,16,2,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,adc\adc.h,68,22,0.0,29.4,0,0.0,{undefined},,0,0,0,0.00,0.00,22,0,0,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,adc\adc.c,83,40,17.5,22.9,5,6.2,31,ISR(),5,55,3,1.10,2.60,9,19,11,1,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,board\board.h,86,32,0.0,20.9,0,0.0,{undefined},,0,0,0,0.00,0.00,32,0,0,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,board\board.c,101,62,0.0,2.0,16,2.7,12,on_desiel_gen_led(),1,13,1,0.69,1.00,19,43,0,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,Digital_Smooth\digital_smooth.h,34,7,0.0,11.8,0,0.0,{undefined},,0,0,0,0.00,0.00,7,0,0,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,Digital_Smooth\digital_smooth.c,69,38,15.8,18.8,4,8.3,21,digital_smooth(),6,43,4,1.39,2.50,5,22,6,1,4,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,uart\uart.h,34,8,0.0,20.6,0,0.0,{undefined},,0,0,0,0.00,0.00,8,0,0,0,0,0,0,0,0,0
+temcoSM,ChkPoint_2017-03-14T11_4_0,14 Mar 2017,uart\uart.c,27,13,15.4,22.2,2,5.0,18,uart_putchar(),3,20,2,0.92,2.00,3,8,2,0,0,0,0,0,0,0

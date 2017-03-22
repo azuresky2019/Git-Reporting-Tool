@@ -46,16 +46,16 @@ if exist %python_path% (
     echo Found Python 2.7.x is installed.
     echo Adding "Python" path to environmental variables.
     rem setx /M PATH "%PATH%;%python_path%"
-    setx PATH "%PATH%;%python_path%"
+    rem setx PATH "%PATH%;%python_path%"
     if exist %pip_path% (
     	echo Found pip installed..
     	echo Adding "pip" path to environmental variables
     	rem setx /M PATH "%PATH%;%pip_path_env%"
-    	setx PATH "%PATH%;%pip_path_env%"
+    	rem setx PATH "%PATH%;%pip_path_env%"
     	echo Installing required modules...   	
-    	%pip_path% install requests
- 		%pip_path% install python-dateutil
- 		%pip_path% install gitpython
+    	rem %pip_path% install requests
+ 		rem %pip_path% install python-dateutil
+ 		rem %pip_path% install gitpython
 
  		%python_app_path% %app_path%
 
@@ -72,3 +72,5 @@ if exist %python_path% (
 ) else (
     echo Python not installed please install "python 2.7.9" or "python 2.7.11".
 )
+
+pause
