@@ -1,12 +1,14 @@
+# import sys
 import time
-import datetime
+import os
 import glob
 from git_api_handler import handle_api_datas
 from requests_handler import *
 from email_handler import Email
 from html_creator import *
-from cm_handler import *
 from csv_generator import CSV
+import git
+
 
 # ------- Main Function --------- #
 def main():
@@ -28,9 +30,6 @@ def main():
 
     # --- Files details ----------
     report_html_file_name = 'report-summary' + time.strftime("--D%d-%m-%yT%H_%M_%S") + ".html"
-
-    st_date_time = datetime.datetime.now()
-
     report_csv_file_name = 'report' + time.strftime("--D%d-%m-%yT%H_%M_%S") + ".csv"
     report_html_file_name = "outputs/" + report_html_file_name
     report_csv_file_path = "outputs/" + report_csv_file_name
@@ -77,30 +76,10 @@ def main():
         test_file.write(html_report)
         test_file.close()
 
-    # ---- Create Source Monitor Report ----
-    get_command_xml = MakeXMLSM(st_date_time)
-    get_command_xml.set_command_xml()
-    get_command_xml.gen_sm_report()
-
     # --------- Email Handling ------------
-    attach_files = [None] * 3
-    attach_files[0] = report_csv_file_name
-
-    print attach_files[0]
-
-    attach_files[1] = "Kiviat for ChkPoint_" + str(st_date_time.date().year) + "_" \
-                      + str(st_date_time.date().month).zfill(2) + "_" + str(st_date_time.date().day).zfill(2) + "T" \
-                      + str(st_date_time.time().hour) + "_" + str(st_date_time.time().minute) + "_" \
-                      + str(st_date_time.time().second) + ".bmp"
-    print  attach_files[1]
-
-    attach_files[2] = "sm_report_" + str(st_date_time.date()) + "T" + str(st_date_time.time().hour) + "_" \
-                      + str(st_date_time.time().minute) + "_" + str(st_date_time.time().second) + ".csv"
-
-    print attach_files[2]
     mail = Email()
     print "Sending email ..."
-    mail.email_report(attach_files, html_report)
+    mail.email_report(report_csv_file_path, report_csv_file_name, html_report)
     print "Email sent."
 
     # update to local repo
