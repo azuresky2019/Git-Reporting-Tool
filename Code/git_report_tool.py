@@ -3,30 +3,35 @@ import sys
 import json
 import datetime
 import os
+import time
 
-import xml.etree.cElementTree as ET
-
+from task_creator import *
+from review_info import *
+from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
 
+class MyThread(QtCore.QThread):
+    trigger = QtCore.pyqtSignal(int)
+
+    def __init__(self, parent=None):
+        super(MyThread, self).__init__(parent)
+
+    def setup(self, thread_no):
+        self.thread_no = thread_no
+
+    def run(self):
+        time.sleep(5)  # random sleep to imitate working
+        self.trigger.emit(self.thread_no)
+
+
 class ScanPopUp(QtGui.QWidget):
-    def __init__(self):
+    def __init__(self, git_dirs, scn_btn):
         super(ScanPopUp, self).__init__()
-
-        with open('config/user_infoUI.json', 'rb') as ui_file:
-            ui_file_raw = json.load(ui_file)
-            ui_file.close()
-
-        print "Searching for git repo on local computer. It may take a while."
-        self.git_dirs = [root
-                    for root, dirs, files in os.walk(str(ui_file_raw["init_root_dir"]))  # change path here
-                    for name in dirs
-                    if name.endswith(".git")]
-        print "Done with searching of repo !"
-
+        self.git_dirs = git_dirs
+        self.scan_btn = scn_btn
         # main layout
         self.mainLayout = QtGui.QVBoxLayout()
-
         # add table inside main layout
         self.checks = []
         self.table = QtGui.QTableWidget()
@@ -55,13 +60,11 @@ class ScanPopUp(QtGui.QWidget):
 
         QObject.connect(self.button_save, SIGNAL("clicked()"), self.save_changes)
 
-        self.btn_hbox =QtGui.QHBoxLayout()
-        self.btn_hbox.addStretch(1)
+        self.btn_hbox = QtGui.QHBoxLayout()
+        self.btn_hbox.addStretch(0)
         self.btn_hbox.addWidget(self.button_save)
         self.btn_hbox.addWidget(self.button_discard)
-
         self.mainLayout.addLayout(self.btn_hbox)
-        # self.mainLayout.addRows(self.btn_hbox)
 
         self.setLayout(self.mainLayout)
         self.setGeometry(100, 100, 400, 400)
@@ -89,17 +92,37 @@ class ScanPopUp(QtGui.QWidget):
             json.dump(checked_dir_list_json, dir_list_file)
             dir_list_file.close()
         del checked_dir_list_json
+        self.scan_btn.setDisabled(False)
         self.close()
 
     def discard_changes(self):
+        self.scan_btn.setDisabled(False)
         self.close()
         pass
 
 class Git_UI(QtGui.QWidget):
     get_dir_dialog = None
+
     def __init__(self):
         super(Git_UI, self).__init__()
 
+        try:
+            with open('config/config.json', 'rb') as config_file:
+                self.config_raw = json.load(config_file)
+                config_file.close()
+        except IOError: # If file not found make a dummy dictonary
+            self.config_raw = {
+                    "user": None,
+                    "email": None,
+                    "id": None,
+                    "secret": None,
+                    "time": None,
+                    "bckup_dir": None,
+                    "prj_dir": None,
+                    "pgm_lng": None,
+                    "days": {None}
+                }
+            pass
         # ----------- Labels ----------
         user_name = QtGui.QLabel('Git Username')
         usr_email = QtGui.QLabel('Email')
@@ -109,57 +132,54 @@ class Git_UI(QtGui.QWidget):
         button_apply = QtGui.QPushButton("OK", self)
         button_apply.clicked.connect(self.apply_action)
 
-        button_cancle = QtGui.QPushButton("Cancel", self)
+        button_cancle = QtGui.QPushButton("Exit", self)
         button_cancle.clicked.connect(self.cancel)
 
         button_get_init_dir = QtGui.QPushButton("Browse", self)
         button_get_init_dir.clicked.connect(self.get_dir)
 
-        button_scan_repo = QtGui.QPushButton("Scan", self)
-        button_scan_repo.clicked.connect(self.scan_action)
+        self.button_scan_repo = QtGui.QPushButton("Scan", self)
+        self.button_scan_repo.clicked.connect(self.scan_action)
 
         button_open_help = QtGui.QPushButton("Help", self)
         button_open_help.clicked.connect(self.openHelp)
 
-        try:
-            with open('config/user_infoUI.json', 'rb') as ui_file:
-                ui_raw = json.load(ui_file)
-                ui_file.close()
-        except:
-            pass
+        # self.showProgress = QtGui.QProgressBar()
+        self.show_lable = QtGui.QLabel()
 
         self.user_nameEdit = QtGui.QLineEdit()
         try:
-            self.user_nameEdit.setText(ui_raw["username"])
+            self.user_nameEdit.setText(self.config_raw["user"])
         except:
             pass
 
         self.client_idEdit = QtGui.QLineEdit()
         try:
-            self.client_idEdit.setText(ui_raw["client_id"])
+            self.client_idEdit.setText(self.config_raw["id"])
         except:
             pass
 
         self.client_secretEdit = QtGui.QLineEdit()
         try:
-            self.client_secretEdit.setText(ui_raw["client_secret"])
+            self.client_secretEdit.setText(self.config_raw["secret"])
         except:
             pass
 
         self.usr_emailEdit = QtGui.QLineEdit()
         try:
-            self.usr_emailEdit.setText(ui_raw["user_email"])
+            self.usr_emailEdit.setText(self.config_raw["email"])
         except:
             pass
 
         self.get_init_dirEdit = QtGui.QLineEdit()
         try:
-            self.get_init_dirEdit.setText(ui_raw["init_root_dir"])
+            self.get_init_dirEdit.setText(self.config_raw["bckup_dir"])
         except:
             self.get_init_dirEdit.setText("Initial project backup directory!")
             pass
 
-        # ---- Create a form layout -----
+        # ---- Create Layout for main tab --
+        ui_mainLayout = QtGui.QVBoxLayout()
         form = QtGui.QFormLayout()
 
         form.addRow(user_name, self.user_nameEdit)
@@ -170,15 +190,18 @@ class Git_UI(QtGui.QWidget):
 
         # --- create a box to store two buttons -----
         main_buttons = QtGui.QHBoxLayout()
-        main_buttons.addWidget(button_scan_repo)
+        main_buttons.addWidget(self.button_scan_repo)
         main_buttons.addWidget(button_open_help)
         main_buttons.addWidget(button_apply)
         main_buttons.addWidget(button_cancle)
         form.addRow(main_buttons)
+        ui_mainLayout.addLayout(form)
+        # ui_mainLayout.addWidget(self.showProgress)
+        ui_mainLayout.addWidget(self.show_lable)
 
-         # -- Create a layout for schedular
+        # -- Create a layout for schedular
         setTimeMainLayout = QtGui.QVBoxLayout()
-        setTimeLayout  = QtGui.QFormLayout()
+        setTimeLayout = QtGui.QFormLayout()
 
         scheduled_time = QtGui.QLabel("Activate at [HH:MM]")
 
@@ -190,75 +213,61 @@ class Git_UI(QtGui.QWidget):
         except:
             pass
 
-        # --- Open JSON file ------
-        try:
-            with open("config/days_chkbox.json", 'rb') as days_chkbox:
-                prev_week_days = json.load(days_chkbox)
-                print prev_week_days
-                days_chkbox.close()
-        except:
-            pass
-
         setTimeLayout.addRow(scheduled_time, self.scheduled_timeEdit)
 
         setWeekGridLayout = QtGui.QGridLayout()
 
+        # --- Open JSON file ------
         self.chkbx_Sunday = QtGui.QCheckBox("Sunday")
         try:
-            if prev_week_days["Sunday"]:
+            if self.config_raw["days"]["Sunday"]:
                 self.chkbx_Sunday.setChecked(True)
         except:
             pass
 
         self.chkbx_Monday = QtGui.QCheckBox("Monday")
         try:
-            if prev_week_days["Monday"]:
+            if self.config_raw["days"]["Monday"]:
                 self.chkbx_Monday.setChecked(True)
         except:
             pass
 
         self.chkbx_Tuesday = QtGui.QCheckBox("Tuesday")
         try:
-            if prev_week_days["Tuesday"]:
+            if self.config_raw["days"]["Tuesday"]:
                 self.chkbx_Tuesday.setChecked(True)
         except:
             pass
 
         self.chkbx_Wednesnday = QtGui.QCheckBox("Wednesday")
         try:
-            if prev_week_days["Wednesday"]:
+            if self.config_raw["days"]["Wednesday"]:
                 self.chkbx_Wednesnday.setChecked(True)
         except:
             pass
 
         self.chkbx_Thursday = QtGui.QCheckBox("Thursday")
         try:
-            if prev_week_days["Thursday"]:
+            if self.config_raw["days"]["Thursday"]:
                 self.chkbx_Thursday.setChecked(True)
         except:
             pass
 
         self.chkbx_Friday = QtGui.QCheckBox("Friday")
         try:
-            if prev_week_days["Friday"]:
+            if self.config_raw["days"]["Friday"]:
                 self.chkbx_Friday.setChecked(True)
         except:
             pass
 
         self.chkbx_Saturday = QtGui.QCheckBox("Saturday")
         try:
-            if prev_week_days["Saturday"]:
+            if self.config_raw["days"]["Saturday"]:
                 self.chkbx_Saturday.setChecked(True)
         except:
             pass
 
-        self.button_set_time = QtGui.QPushButton("Save")
         buttonLayout = QtGui.QHBoxLayout()
-        buttonLayout.addWidget(self.button_set_time)
-        self.button_set_time.clicked.connect(self.manage_scheduler)
-        buttonLayout.addStretch(1)
-
-
         setWeekGridLayout.addWidget(self.chkbx_Sunday, 1, 0)
         setWeekGridLayout.addWidget(self.chkbx_Monday, 1, 1)
         setWeekGridLayout.addWidget(self.chkbx_Tuesday, 1, 2)
@@ -267,7 +276,6 @@ class Git_UI(QtGui.QWidget):
         setWeekGridLayout.addWidget(self.chkbx_Thursday, 2, 0)
         setWeekGridLayout.addWidget(self.chkbx_Friday, 2, 1)
         setWeekGridLayout.addWidget(self.chkbx_Saturday, 2, 2)
-
         labelWidget = QtGui.QLabel("Recur every week on: ")
 
         setTimeMainLayout.addLayout(setTimeLayout)
@@ -276,73 +284,143 @@ class Git_UI(QtGui.QWidget):
 
         setTimeMainLayout.addLayout(buttonLayout)
         setTimeMainLayout.addStretch(0)
-        setTimeMainLayout.addSpacing(5)
+
+        # --- Layout for Source monitor setup ---
+        self.setSMMainLayout = QtGui.QVBoxLayout()
+        self.setSMLayout = QtGui.QFormLayout()
+        self.setCombBox = QtGui.QHBoxLayout()
+        self.getProjectDir = QtGui.QPushButton("Browse")
+        self.getProjectDir.clicked.connect(self.getScrDir)
+
+        self.getProjectDirEdit = QtGui.QLineEdit()
+
+        try:
+                if self.config_raw["prj_dir"]:
+                    self.getProjectDirEdit.setText(str(self.config_raw["prj_dir"]))
+                else:
+                    self.getProjectDirEdit.setText("Browse for a project source directory.")
+        except:
+            self.getProjectDirEdit.setText("Browse for a project source directory.")
+            pass
+
+        self.setLanguateLebel = QtGui.QLabel("Select Language :")
+        self.pgm_lngs = ["C", "C++", "C#", "Java", "VB.Net", "Delphi", "HTML", "Visual Basic"]
+        self.chooseLangueage = QtGui.QComboBox()
+        self.chooseLangueage.addItems(self.pgm_lngs)
+        self.setSMLayout.addRow(self.getProjectDir, self.getProjectDirEdit)
+        self.setSMLayout.addRow(self.setLanguateLebel, self.chooseLangueage)
+        self.setSMMainLayout.addLayout(self.setSMLayout)
+        self.setSMMainLayout.addLayout(self.setCombBox)
+        self.setSMMainLayout.addStretch(1)
+
+        try:
+            for inx in range(0, len(self.pgm_lngs)):
+                if self.config_raw["pgm_lng"] == self.pgm_lngs[inx]:
+                    break
+            self.chooseLangueage.setCurrentIndex(inx)
+        except:
+            pass
 
         # ----- Create a tab widget -----
-        self.tabs =  QtGui.QTabWidget()
+        self.tabs = QtGui.QTabWidget()
 
         # -------- Create tabs --------
+        # -- Main window tab ----
         self.tabMain = QtGui.QWidget()
-        self.tabMain.setLayout(form)
+        self.tabMain.setLayout(ui_mainLayout)
 
+        # -- Edit Trigger Tab ------
         self.tabSch = QtGui.QWidget()
         self.tabSch.setLayout(setTimeMainLayout)
 
+        # -- Source Monitor Tab -----
+        self.tabSM = QtGui.QWidget()
+        self.tabSM.setLayout(self.setSMMainLayout)
 
         # -- add tabs ---
         self.tabs.addTab(self.tabMain, "Config User")
         self.tabs.addTab(self.tabSch, "Edit Trigger")
+        self.tabs.addTab(self.tabSM, "Code Matrics")
 
         # -- set title and show ---
-        self.tabs.setGeometry(300, 300, 400, 220)
-        self.tabs.setFixedSize(400, 220)
+        self.tabs.setGeometry(300, 300, 400, 240)
+        # self.tabs.setFixedSize(400, 240)
         self.tabs.setWindowIcon(QtGui.QIcon('github-logo-icon.png'))
         self.tabs.setWindowTitle('Git report tool: TemcoNepal')
         self.tabs.show()
         pass
 
     def apply_action(self):
-        self.write_json()
-        if not self.info_fromUI["username"] or not self.info_fromUI["user_email"] or not self.info_fromUI["client_id"] or not self.info_fromUI["client_secret"] or not self.info_fromUI["scheduled_time"] or not self.info_fromUI["init_root_dir"]:
+        self.manage_scheduler()
+        if not self.user_nameEdit.text() or not self.usr_emailEdit.text() or not self.client_idEdit.text() or not \
+                self.client_secretEdit.text() or not self.scheduled_timeEdit.text() or not \
+                self.get_init_dirEdit.text() or not ':' in self.get_init_dirEdit.text() or not \
+                self.getProjectDirEdit.text() or not ':' in self.getProjectDirEdit.text():
             self.error_message()
-        else:
-            # self.manage_scheduler(str(self.scheduled_timeEdit.text()))
-            os.system("SCHTASKS /Create /XML config/temco_git_tool.xml /TN TemcoGitReport /F")
-            sys.exit()
-        pass
 
-    def write_json(self):
-        self.info_fromUI = {
-            "username":str(self.user_nameEdit.text()),
-            "user_email":str(self.usr_emailEdit.text()),
-            "client_id":str(self.client_idEdit.text()),
-            "client_secret":str(self.client_secretEdit.text()),
-            "scheduled_time":str(self.scheduled_timeEdit.text()),
-            "init_root_dir":str(self.get_init_dirEdit.text())
-        }
-        with open("config/user_infoUI.json", "wb") as user_ui_json:
-            json.dump(self.info_fromUI, user_ui_json)
-            user_ui_json.close()
+        else:
+            dict_all_info = {
+                "user": str(self.user_nameEdit.text()),
+                "email": str(self.usr_emailEdit.text()),
+                "id": str(self.client_idEdit.text()),
+                "secret": str(self.client_secretEdit.text()),
+                "time": str(self.scheduled_timeEdit.text()),
+                "bckup_dir": str(self.get_init_dirEdit.text()),
+                "prj_dir": str(self.getProjectDirEdit.text()),
+                "pgm_lng": str(self.chooseLangueage.currentText()),
+                "days": self.week_days
+            }
+            # print dict_all_info
+            try:
+                self.reviewInfo = Info_review(dict_all_info)
+                self.reviewInfo.show()
+            except UnboundLocalError:
+                self.error_not_scanned()
+                pass
 
     def get_dir(self):
         self.get_dir_dialog = QtGui.QFileDialog.getExistingDirectory(None,
-                                                                'Select initial directory into which repos are cloned:',
-                                                                'C:\\', QtGui.QFileDialog.ShowDirsOnly)
-        print "Obtained direcory is : " + str(self.get_dir_dialog)
+                                                                     'Select initial directory into which repos are cloned:',
+                                                                     'C:\\', QtGui.QFileDialog.ShowDirsOnly)
         self.get_init_dirEdit.setText(str(self.get_dir_dialog))
         pass
 
     def cancel(self):
         sys.exit()
         pass
+
     def error_message(self):
         error = QtGui.QErrorMessage()
-        error.showMessage("Data fields are empty !")
+        error.setWindowTitle("Invalid data inputs!")
+        error.setWindowIcon(QtGui.QIcon("github-logo-icon.png"))
+        if not '@' in self.usr_emailEdit.text() or not "." in self.usr_emailEdit.text():
+            error.showMessage("Invalid email!")
+        elif not ':' in self.get_init_dirEdit.text():
+            error.showMessage("Please input appropriate an initial backup directory, scan and save!")
+        elif not ':' in self.getProjectDirEdit.text():
+            error.showMessage("Please browse a appropriate project directory for Code Metrics evaluation!")
+        else:
+            error.showMessage("Data fields are empty!")
         error.exec_()
         pass
 
-    def manage_scheduler(self):
+    def error_msg_scan(self):
+        error_scan = QtGui.QErrorMessage()
+        error_scan.setWindowTitle("Invalid data inputs!")
+        error_scan.setWindowIcon(QtGui.QIcon("github-logo-icon.png"))
+        error_scan.showMessage("Please browse for appropriate backup directory first!")
+        error_scan.exec_()
+    pass
 
+    def error_not_scanned(self):
+        error_not_scnd = QtGui.QErrorMessage()
+        error_not_scnd.setWindowTitle("Not scanned for repository !")
+        error_not_scnd.setWindowIcon(QtGui.QIcon("github-logo-icon.png"))
+        error_not_scnd.showMessage("Please scan for local backup git repositories save!")
+        error_not_scnd.exec_()
+        pass
+
+    def manage_scheduler(self):
 
         # -- Get current date ------------------
         time = self.scheduled_timeEdit.text()
@@ -354,42 +432,50 @@ class Git_UI(QtGui.QWidget):
 
         # ---------- arrange repetation ---------
         self.week_days = {
-            "Sunday":None,
-            "Monday":None,
-            "Tuesday":None,
-            "Wednesday":None,
-            "Thursday":None,
-            "Friday":None,
-            "Saturday":None,
+            "Sunday": None,
+            "Monday": None,
+            "Tuesday": None,
+            "Wednesday": None,
+            "Thursday": None,
+            "Friday": None,
+            "Saturday": None,
         }
-
+        self.if_no_days_set = 0
         if self.chkbx_Sunday.isChecked():
             self.week_days["Sunday"] = True
+            self.if_no_days_set += 1
         if self.chkbx_Monday.isChecked():
             self.week_days["Monday"] = True
+            self.if_no_days_set += 1
         if self.chkbx_Tuesday.isChecked():
             self.week_days["Tuesday"] = True
+            self.if_no_days_set += 1
         if self.chkbx_Wednesnday.isChecked():
             self.week_days["Wednesday"] = True
+            self.if_no_days_set += 1
         if self.chkbx_Thursday.isChecked():
             self.week_days["Thursday"] = True
+            self.if_no_days_set += 1
         if self.chkbx_Friday.isChecked():
             self.week_days["Friday"] = True
+            self.if_no_days_set += 1
         if self.chkbx_Saturday.isChecked():
             self.week_days["Saturday"] = True
+            self.if_no_days_set += 1
+
+        if not self.if_no_days_set:
+            self.chkbx_Monday.setChecked(True)
+            self.week_days["Monday"] = True
 
         # -- Arrange app dir --------------------------
         app_file_to_run = "\\app_backend.exe"
+        # app_file_to_run = "\\trigger_backend.bat"
         current_path = str(os.getcwd())
         app_file_to_run = current_path + app_file_to_run
         app_path = current_path + '\\'
         # ----------------------------------------------
 
-        with open("config/days_chkbox.json", 'wb') as days_chkbox:
-            json.dump(self.week_days, days_chkbox)
-            days_chkbox.close()
-
-        MakeXML(self.week_days, final_date_time, app_file_to_run, app_path)
+        MakeXMLSCH(self.week_days, final_date_time, app_file_to_run, app_path)
         pass
 
     def openHelp(self):
@@ -397,100 +483,44 @@ class Git_UI(QtGui.QWidget):
         pass
 
     def scan_action(self):
-        self.write_json()
-        print "Pressed scan !"
-        self.PopUp = ScanPopUp()
-        self.PopUp.show()
+        self.button_scan_repo.setDisabled(True)
+        if not ':' in self.get_init_dirEdit.text():
+            self.error_msg_scan()
+        else:
+            print "Searching for git repo on local computer. It may take a while."
+
+            git_dir = []
+            for root, dirs, files in os.walk(str(self.get_init_dirEdit.text())):
+                for name in dirs:
+                    if name.endswith(".git"):
+                        git_dir.append(root)
+
+                        print "searching on " + root
+                        root = root[len(str(self.get_init_dirEdit.text())):]
+
+                        myDirVar = str(self.get_init_dirEdit.text()).split("\\")
+
+                        myDirStr = myDirVar[len(myDirVar) - 1]
+
+                        self.show_lable.wordWrap()
+                        self.show_lable.setText(str("Searching: ~" + "\\" + str(myDirStr) + str(root)))
+                        QtCore.QCoreApplication.processEvents()
+            # print "Done with searching of repo !"
+            self.show_lable.setText("Done searching for available repositories!")
+            # print git_dir
+            self.PopUp = ScanPopUp(git_dir, self.button_scan_repo)
+            self.PopUp.show()
+            pass
+    pass
+
+    def getScrDir(self):
+        get_dir = QtGui.QFileDialog.getExistingDirectory(None,
+                                                         'Select source file containing directory',
+                                                         # 'G:\\Study\\ELECTRONICS PROJECTS\\CPC\\project\\mega32_20x4_cpc_fm\\mega32_20x4_cpc_fm', QtGui.QFileDialog.ShowDirsOnly)
+                                                         'C:\\', QtGui.QFileDialog.ShowDirsOnly)
+        # print "Obtained direcory is : " + str(get_dir)
+        self.getProjectDirEdit.setText(str(get_dir))
         pass
-    pass
-
-class MakeXML:
-
-    def __init__(self, week_days, date_time, command_path, working_dir):
-
-        # -- Accumulate variables ---
-        self.week_days = week_days
-        self.date_time = date_time
-        self.command_path = command_path
-        self.working_dir = working_dir
-
-        self.task = ET.Element("Task", version="1.2", xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task")
-
-        # Generate RegistrationInfo
-        self.RegistrationInfo = ET.SubElement(self.task, "RegistrationInfo")
-        ET.SubElement(self.RegistrationInfo, "Description").text = "This is a task for auto running  git report generator"
-
-        # Generate Triggers
-        self.Triggers = ET.SubElement(self.task, "Triggers")
-        self.CalendarTrigger = ET.SubElement(self.Triggers, "CalendarTrigger")
-        ET.SubElement(self.CalendarTrigger, "StartBoundary").text = str(date_time)
-        ET.SubElement(self.CalendarTrigger, "Enabled").text = "true"
-        self.ScheduleByWeek = ET.SubElement(self.CalendarTrigger, "ScheduleByWeek")
-        DaysOfWeek = ET.SubElement(self.ScheduleByWeek, "DaysOfWeek")
-
-        if(self.week_days["Sunday"]):
-            Sunday = ET.SubElement(DaysOfWeek, "Sunday")
-            pass
-
-        if(self.week_days["Monday"]):
-            Monday = ET.SubElement(DaysOfWeek, "Monday")
-            pass
-
-        if(self.week_days["Tuesday"]):
-            Tuesday = ET.SubElement(DaysOfWeek, "Tuesday")
-            pass
-
-        if self.week_days["Wednesday"]:
-            Wednesday = ET.SubElement(DaysOfWeek, "Wednesday")
-            pass
-
-        if self.week_days["Thursday"]:
-            Thursday = ET.SubElement(DaysOfWeek, "Thursday")
-            pass
-
-        if self.week_days["Friday"]:
-            Friday = ET.SubElement(DaysOfWeek, "Friday")
-            pass
-
-        if self.week_days["Saturday"]:
-            Saturday = ET.SubElement(DaysOfWeek, "Saturday")
-            pass
-
-        # Generate Principals
-        self.Principals = ET.SubElement(self.task, "Principals")
-        self.Principal = ET.SubElement(self.Principals, "Principal", id="Author")
-        ET.SubElement(self.Principal, "LogonType").text = "InteractiveToken"
-        ET.SubElement(self.Principal, "RunLevel").text = "LeastPrivilege"
-
-        # Generate Settings
-        self.Settings = ET.SubElement(self.task, "Settings")
-        ET.SubElement(self.Settings, "MultipleInstancesPolicy").text = "IgnoreNew"
-        ET.SubElement(self.Settings, "DisallowStartIfOnBatteries").text = "false"
-        ET.SubElement(self.Settings, "StopIfGoingOnBatteries").text = "true"
-        ET.SubElement(self.Settings, "AllowHardTerminate").text = "true"
-        ET.SubElement(self.Settings, "StartWhenAvailable").text = "true"
-        ET.SubElement(self.Settings, "RunOnlyIfNetworkAvailable").text = "false"
-
-        self.IdleSettings = ET.SubElement(self.Settings, "IdleSettings")
-        ET.SubElement(self.IdleSettings, "StopOnIdleEnd").text = "true"
-        ET.SubElement(self.IdleSettings, "RestartOnIdle").text = "false"
-
-        ET.SubElement(self.Settings, "AllowStartOnDemand").text = "true"
-        ET.SubElement(self.Settings, "Enabled").text = "true"
-        ET.SubElement(self.Settings, "Hidden").text = "false"
-        ET.SubElement(self.Settings, "RunOnlyIfIdle").text = "false"
-        ET.SubElement(self.Settings, "WakeToRun").text = "false"
-        ET.SubElement(self.Settings, "ExecutionTimeLimit").text = "P3D"
-        # ET.SubElement(self.Settings, "Priority").text = "7"
-
-        self.Actions = ET.SubElement(self.task, "Actions", Context="Author")
-        self.Exec = ET.SubElement(self.Actions, "Exec")
-        ET.SubElement(self.Exec, "Command").text = self.command_path
-        ET.SubElement(self.Exec, "WorkingDirectory").text = self.working_dir
-
-        self.tree = ET.ElementTree(self.task)
-        self.tree.write("config/temco_git_tool.xml")
-    pass
 
 def main():
     app = QtGui.QApplication(sys.argv)

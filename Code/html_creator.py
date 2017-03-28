@@ -6,11 +6,12 @@ class HTML:
     def __init__(self):
         self.table_header = ["Project", "User", "Files changed", "Lines added", "Lines deleted"]
         self.html_lang = "<h4>Git commit report summary :</h4>" \
-                    "<p>This is a summary of commits done approximately within last 7 days by different users for all your git repository." \
-                    " Please find attached file as CSV version of report. Thank you.</p>" \
-                    "<p><i> Note: This is an automatically generated email, please do not reply.</i></p>"\
-                    "<b> ---------------------------------------------------------------------------------------------------"\
-                    "-------------------------------------------------------------------------------------</b>"
+                    "<p>This is a summary of commits done approximately within last 7 days by different users for " \
+                         "all your git repository. Please find attachments which includes CSV version of summary " \
+                         "report, Code matrics report and the Kiviat Matrics Graph. Thank you.</p><p><i> Note: This " \
+                         "is an automatically generated email, please do not reply.</i></p> <b> ---------------------" \
+                         "------------------------------------------------------------------------------------------" \
+                         "-------------------------------------------------------------------------</b>"
 
     def encode_html(self, list_repo):
         total_repos = len(list_repo)
