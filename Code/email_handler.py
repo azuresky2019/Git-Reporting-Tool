@@ -7,8 +7,8 @@ import json
 
 class Email:
     def __init__(self):
-        self.sender_addr = "tech_temco@outlook.com"
-        self.sender_pass = "Techtemc0"
+        self.sender_addr = ""
+        self.sender_pass = ""
         self.sender_smtp_serv = "smtp.live.com"
         self.sender_smtp_serv_port = 587
         with open('config/config.json', 'rb') as email_file:
