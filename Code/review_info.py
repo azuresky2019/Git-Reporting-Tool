@@ -3,7 +3,7 @@ import sys
 from PyQt4 import QtGui
 import os
 
-class Info_review(QtGui.QWidget):
+class Info_review(QtGui.QDialog, QtGui.QWidget):
     def __init__(self, user_info_all):
         super(Info_review, self).__init__()
         self.user_info_all = user_info_all
@@ -18,7 +18,10 @@ class Info_review(QtGui.QWidget):
 
         # --- Table for general information -----
         self.confirmInfoTable = QtGui.QTableWidget()
-        self.confirmInfoTable.setRowCount(8)
+        if not self.user_info_all["repo_type_github"]:
+            self.confirmInfoTable.setRowCount(2)
+        else:
+            self.confirmInfoTable.setRowCount(8)
         self.confirmInfoTable.setColumnCount(2)
 
         # --- Table for listing local repository ----
@@ -53,29 +56,30 @@ class Info_review(QtGui.QWidget):
 
         self.confirmInfoTable.setColumnWidth(1, 300)
 
-        self.confirmInfoTable.setItem(0, 0, QtGui.QTableWidgetItem("Git Username"))
-        self.confirmInfoTable.setItem(0, 1, QtGui.QTableWidgetItem(str(self.user_info_all["user"])))
+        self.confirmInfoTable.setItem(0, 0, QtGui.QTableWidgetItem("User email "))
+        self.confirmInfoTable.setItem(0, 1, QtGui.QTableWidgetItem(str(self.user_info_all["email"])))
 
-        self.confirmInfoTable.setItem(1, 0, QtGui.QTableWidgetItem("User email "))
-        self.confirmInfoTable.setItem(1, 1, QtGui.QTableWidgetItem(str(self.user_info_all["email"])))
+        self.confirmInfoTable.setItem(1, 0, QtGui.QTableWidgetItem("Root report directory"))
+        self.confirmInfoTable.setItem(1, 1, QtGui.QTableWidgetItem(str(self.user_info_all["bckup_dir"])))
 
-        self.confirmInfoTable.setItem(2, 0, QtGui.QTableWidgetItem("Client ID"))
-        self.confirmInfoTable.setItem(2, 1, QtGui.QTableWidgetItem(str(self.user_info_all["id"])))
+        if self.user_info_all["repo_type_github"]:
+            self.confirmInfoTable.setItem(2, 0, QtGui.QTableWidgetItem("Git Username"))
+            self.confirmInfoTable.setItem(2, 1, QtGui.QTableWidgetItem(str(self.user_info_all["user"])))
 
-        self.confirmInfoTable.setItem(3, 0, QtGui.QTableWidgetItem("Client Secret"))
-        self.confirmInfoTable.setItem(3, 1, QtGui.QTableWidgetItem(str(self.user_info_all["secret"])))
+            self.confirmInfoTable.setItem(3, 0, QtGui.QTableWidgetItem("Client ID"))
+            self.confirmInfoTable.setItem(3, 1, QtGui.QTableWidgetItem(str(self.user_info_all["id"])))
 
-        self.confirmInfoTable.setItem(4, 0, QtGui.QTableWidgetItem("Root report directory"))
-        self.confirmInfoTable.setItem(4, 1, QtGui.QTableWidgetItem(str(self.user_info_all["bckup_dir"])))
+            self.confirmInfoTable.setItem(4, 0, QtGui.QTableWidgetItem("Client Secret"))
+            self.confirmInfoTable.setItem(4, 1, QtGui.QTableWidgetItem(str(self.user_info_all["secret"])))
 
-        self.confirmInfoTable.setItem(5, 0, QtGui.QTableWidgetItem("Scheduled time"))
-        self.confirmInfoTable.setItem(5, 1, QtGui.QTableWidgetItem(str(self.user_info_all["time"])))
+            self.confirmInfoTable.setItem(5, 0, QtGui.QTableWidgetItem("Scheduled time"))
+            self.confirmInfoTable.setItem(5, 1, QtGui.QTableWidgetItem(str(self.user_info_all["time"])))
 
-        self.confirmInfoTable.setItem(6, 0, QtGui.QTableWidgetItem("Code matrics project Folder"))
-        self.confirmInfoTable.setItem(6, 1, QtGui.QTableWidgetItem(str(self.user_info_all["prj_dir"])))
+            self.confirmInfoTable.setItem(6, 0, QtGui.QTableWidgetItem("Code matrics project Folder"))
+            self.confirmInfoTable.setItem(6, 1, QtGui.QTableWidgetItem(str(self.user_info_all["prj_dir"])))
 
-        self.confirmInfoTable.setItem(7, 0, QtGui.QTableWidgetItem("Programming language, code matrices"))
-        self.confirmInfoTable.setItem(7, 1, QtGui.QTableWidgetItem(str(self.user_info_all["pgm_lng"])))
+            self.confirmInfoTable.setItem(7, 0, QtGui.QTableWidgetItem("Programming language, code matrices"))
+            self.confirmInfoTable.setItem(7, 1, QtGui.QTableWidgetItem(str(self.user_info_all["pgm_lng"])))
 
         self.projectMonitorTable.setHorizontalHeaderLabels(["Directory Path"])
         for repo in range(0, len(raw_dir_lst)):
@@ -143,8 +147,9 @@ class Info_review(QtGui.QWidget):
         self.confirmInfoMainLayut.addLayout(self.buttomButtonLayout)
         self.setLayout(self.confirmInfoMainLayut)
         self.setGeometry(100, 100, 500, 500)
+        self.setFixedSize(500, 500)
         self.setWindowTitle("Confirm inputs")
-        self.setWindowIcon(QtGui.QIcon('github-logo-icon.png'))
+        # self.setWindowIcon(QtGui.QIcon('github-logo-icon.png'))
 
     def save_rev_info(self):
         os.system("SCHTASKS /Create /XML config/temco_git_tool.xml /TN TemcoGitReport /F")

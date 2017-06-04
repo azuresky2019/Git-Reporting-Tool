@@ -1,17 +1,17 @@
 import HTML_table
 import json
-from utc_to_local import to_local, to_local_raw, compare_time
+# from time_convert import TimeConvert
 
 class HTML:
-    def __init__(self):
+    def __init__(self, days):
         self.table_header = ["Project", "User", "Files changed", "Lines added", "Lines deleted"]
         self.html_lang = "<h4>Git commit report summary :</h4>" \
-                    "<p>This is a summary of commits done approximately within last 7 days by different users for " \
-                         "all your git repository. Please find attachments which includes CSV version of summary " \
-                         "report, Code matrics report and the Kiviat Matrics Graph. Thank you.</p><p><i> Note: This " \
-                         "is an automatically generated email, please do not reply.</i></p> <b> ---------------------" \
-                         "------------------------------------------------------------------------------------------" \
-                         "-------------------------------------------------------------------------</b>"
+                    "<p>This is a summary of commits done approximately within last %d days by different users for " \
+                         "different projects. Please find attached CSV version of this report. Thank you." \
+                         "</p><p><i> Note: This is an automatically generated email, please do not reply.</i></p>" \
+                         "<b> ------------------------------------------------------------------------------------" \
+                         "-----------------------------------------------------------------------------------------" \
+                         "-----------</b>" %days
 
     def encode_html(self, list_repo):
         total_repos = len(list_repo)
@@ -41,6 +41,32 @@ class HTML:
                     list_commits.append(list_html_data)
                     project_name = 0
                     pass
+                pass
+            pass
+        table_html = HTML_table.table(list_commits)
+        return self.html_lang + table_html
+        pass
+
+    def encode_html_local(self, list_project_based):
+
+        list_commits = [self.table_header]
+
+        for indx_repo, repo in enumerate(list_project_based):
+            print "Processing data from repo: \"%d.%s\"." % (indx_repo+1, repo["project"])
+            project_name = repo["project"]
+            for user in repo["user_info"]:
+                try:
+                    user_name = str(user["user"])
+                    list_html_data = [None] * len(self.table_header)
+                    list_html_data[0] = project_name
+                    list_html_data[1] = user_name
+                    list_html_data[2] = user["files_changed_total"] if user["files_changed_total"] else '0'
+                    list_html_data[3] = user["lines_added_total"] if user["lines_added_total"] else '0'
+                    list_html_data[4] = user["lines_deleted_total"] if user["lines_deleted_total"] else '0'
+                    list_commits.append(list_html_data)
+                    project_name = 0
+                except UnicodeEncodeError:
+                    print "error Unicode encode html !"
                 pass
             pass
         table_html = HTML_table.table(list_commits)

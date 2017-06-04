@@ -1,11 +1,12 @@
 import json
 import csv
-from utc_to_local import to_local
+# from time_convert import TimeConvert
 
 
 class CSV:
     def __init__(self):
         self.table_header = ["Project", "User", "Total files changed", "Total lines added", "Total lines deleted"]
+        # self.time_mang = TimeConvert()
 
     def get_report(self, report_csv_file_path, list_repo):
         total_repos = len(list_repo)
@@ -44,9 +45,33 @@ class CSV:
                                 "Total lines deleted": user_details_raw[user]["lines_deleted_total"],
                             })
                             pass
-
-
                         pass
 
+        report_csv_file.close()
+        pass
+
+    def get_report_local(self, report_path, project_details_raw):
+
+        with open(report_path, 'wb') as report_csv_file:
+            csv_file_writer = csv.DictWriter(report_csv_file, fieldnames=self.table_header)
+            csv_file_writer.writeheader()
+
+            for project in project_details_raw:
+                csv_file_writer.writerow({
+                    "Project": project["project"]
+                })
+                total_users = len(project["user_info"])
+
+                for user in range(0, total_users):
+                    try:
+                        csv_file_writer.writerow({
+                            "User": project["user_info"][user]["user"],
+                            "Total files changed": project["user_info"][user]["files_changed_total"] if project["user_info"][user]["files_changed_total"] else 0,
+                            "Total lines added": project["user_info"][user]["lines_added_total"] if project["user_info"][user]["lines_added_total"] else 0,
+                            "Total lines deleted": project["user_info"][user]["lines_deleted_total"] if project["user_info"][user]["lines_deleted_total"] else 0,
+                        })
+                    except UnicodeEncodeError:
+                        print "Unicode encode error occured csv write!"
+                    pass
         report_csv_file.close()
         pass

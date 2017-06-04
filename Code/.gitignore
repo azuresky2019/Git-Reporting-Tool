@@ -1,0 +1,17 @@
+.idea
+*.pyc
+*.csv
+*.html
+output_jsons/*.json
+
+*.conf
+*.spec
+*.toc
+*.exe
+
+ui/*.pyc
+
+build/app_backend/*.toc
+build/app_backend/*.*
+dist/*.*
+build/*.*

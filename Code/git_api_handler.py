@@ -1,10 +1,11 @@
 import json
 from requests_handler import *
-from utc_to_local import *
+from time_convert import *
 
 days_to_count = 7
 grab_commits_qty = 15
 
+time_stuff = TimeConvert()
 
 def handle_api_datas(user_id, credentials, repo_name):
     all_commits_details_file = 'api_jsons/' + repo_name + '-' + 'all_commits_details.json'
@@ -77,8 +78,7 @@ def handle_api_datas(user_id, credentials, repo_name):
                 if all_json[j]["committer"]["login"] == list_all_contrib_info[i]["user"]:
                     sorted_commits.append(all_json[j])
             except TypeError:
-                print 'Found invalid value while sorting. Probably user email and user id not configured properly for '
-                'git. '
+                print 'Found invalid JSON data !'
                 pass
             pass
         pass
@@ -87,7 +87,7 @@ def handle_api_datas(user_id, credentials, repo_name):
     date_sorted_commits = []
     for commit in range(0, len(sorted_commits)):
         # print "Date : " + sorted_commits[commit]["commit"]["committer"]["date"]
-        if compare_time(to_local_raw(sorted_commits[commit]["commit"]["committer"]["date"])) < days_to_count:
+        if time_stuff.compare_time(time_stuff.to_local_raw(sorted_commits[commit]["commit"]["committer"]["date"])) < days_to_count:
             date_sorted_commits.append(sorted_commits[commit])
             pass
         pass

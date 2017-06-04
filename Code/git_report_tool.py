@@ -144,7 +144,6 @@ class Git_UI(QtGui.QWidget):
         button_open_help = QtGui.QPushButton("Help", self)
         button_open_help.clicked.connect(self.openHelp)
 
-        # self.showProgress = QtGui.QProgressBar()
         self.show_lable = QtGui.QLabel()
 
         self.user_nameEdit = QtGui.QLineEdit()
@@ -178,8 +177,7 @@ class Git_UI(QtGui.QWidget):
             self.get_init_dirEdit.setText("Initial project backup directory!")
             pass
 
-        # ---- Create Layout for main tab --
-        ui_mainLayout = QtGui.QVBoxLayout()
+        layout_userConfig = QtGui.QVBoxLayout()
         form = QtGui.QFormLayout()
 
         form.addRow(user_name, self.user_nameEdit)
@@ -195,16 +193,17 @@ class Git_UI(QtGui.QWidget):
         main_buttons.addWidget(button_apply)
         main_buttons.addWidget(button_cancle)
         form.addRow(main_buttons)
-        ui_mainLayout.addLayout(form)
-        # ui_mainLayout.addWidget(self.showProgress)
-        ui_mainLayout.addWidget(self.show_lable)
+        layout_userConfig.addLayout(form)
+        layout_userConfig.addWidget(self.show_lable)
 
-        # -- Create a layout for schedular
+        group_user_config = QtGui.QGroupBox(self)
+        group_user_config.setTitle("Config User")
+        group_user_config.setLayout(layout_userConfig)
+
+        # ------------ Scheduler -------------
         setTimeMainLayout = QtGui.QVBoxLayout()
         setTimeLayout = QtGui.QFormLayout()
-
         scheduled_time = QtGui.QLabel("Activate at [HH:MM]")
-
         self.scheduled_timeEdit = QtGui.QLineEdit()
         try:
             time_now = str(datetime.datetime.now().time())
@@ -212,9 +211,7 @@ class Git_UI(QtGui.QWidget):
             self.scheduled_timeEdit.setText(hr_min)
         except:
             pass
-
         setTimeLayout.addRow(scheduled_time, self.scheduled_timeEdit)
-
         setWeekGridLayout = QtGui.QGridLayout()
 
         # --- Open JSON file ------
@@ -283,7 +280,11 @@ class Git_UI(QtGui.QWidget):
         setTimeMainLayout.addLayout(setWeekGridLayout)
 
         setTimeMainLayout.addLayout(buttonLayout)
-        setTimeMainLayout.addStretch(0)
+
+        group_time_config = QtGui.QGroupBox(self)
+        group_time_config.setTitle("Set Trigger")
+        group_time_config.setLayout(setTimeMainLayout)
+        # setTimeMainLayout.addStretch(0)
 
         # --- Layout for Source monitor setup ---
         self.setSMMainLayout = QtGui.QVBoxLayout()
@@ -311,7 +312,11 @@ class Git_UI(QtGui.QWidget):
         self.setSMLayout.addRow(self.setLanguateLebel, self.chooseLangueage)
         self.setSMMainLayout.addLayout(self.setSMLayout)
         self.setSMMainLayout.addLayout(self.setCombBox)
-        self.setSMMainLayout.addStretch(1)
+        # self.setSMMainLayout.addStretch(1)
+
+        group_sm_config = QtGui.QGroupBox(self)
+        group_sm_config.setTitle("Code Matrics")
+        group_sm_config.setLayout(self.setSMMainLayout)
 
         try:
             for inx in range(0, len(self.pgm_lngs)):
@@ -321,33 +326,18 @@ class Git_UI(QtGui.QWidget):
         except:
             pass
 
-        # ----- Create a tab widget -----
-        self.tabs = QtGui.QTabWidget()
-
-        # -------- Create tabs --------
-        # -- Main window tab ----
-        self.tabMain = QtGui.QWidget()
-        self.tabMain.setLayout(ui_mainLayout)
-
-        # -- Edit Trigger Tab ------
-        self.tabSch = QtGui.QWidget()
-        self.tabSch.setLayout(setTimeMainLayout)
-
-        # -- Source Monitor Tab -----
-        self.tabSM = QtGui.QWidget()
-        self.tabSM.setLayout(self.setSMMainLayout)
-
-        # -- add tabs ---
-        self.tabs.addTab(self.tabMain, "Config User")
-        self.tabs.addTab(self.tabSch, "Edit Trigger")
-        self.tabs.addTab(self.tabSM, "Code Matrics")
+        layout_mainUI = QtGui.QVBoxLayout()
+        layout_mainUI.addWidget(group_user_config)
+        layout_mainUI.addWidget(group_time_config)
+        layout_mainUI.addWidget(group_sm_config)
+        self.setLayout(layout_mainUI)
 
         # -- set title and show ---
-        self.tabs.setGeometry(300, 300, 400, 240)
-        # self.tabs.setFixedSize(400, 240)
-        self.tabs.setWindowIcon(QtGui.QIcon('github-logo-icon.png'))
-        self.tabs.setWindowTitle('Git report tool: TemcoNepal')
-        self.tabs.show()
+        self.setGeometry(300, 300, 400, 240)
+        # self.setFixedSize(400, 240)
+        self.setWindowIcon(QtGui.QIcon('github-logo-icon.png'))
+        self.setWindowTitle('Git report tool: TemcoNepal')
+        self.show()
         pass
 
     def apply_action(self):

@@ -1,5 +1,5 @@
 import os
-# from os import subprocess
+import subprocess
 import json
 import xml.etree.cElementTree as ET
 
@@ -95,6 +95,7 @@ class MakeXMLSM:
         pass
 
     def gen_sm_report(self):
-        os.system("sourcemonitor /c \"config/sourc_mn.xml\"")
+        CREATE_NO_WINDOW = 0x08000000
+        subprocess.call("sourcemonitor /c \"config/sourc_mn.xml\"", creationflags=CREATE_NO_WINDOW)
         pass
     pass
