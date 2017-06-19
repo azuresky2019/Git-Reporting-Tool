@@ -61,7 +61,7 @@ class Ui_repo_manager(object):
         item = self.tableWidgetListRepo.horizontalHeaderItem(0)
         item.setText(_translate("repo_manager", "Monitor", None))
         item = self.tableWidgetListRepo.horizontalHeaderItem(1)
-        item.setText(_translate("repo_manager", "Repository Path", None))
+        item.setText(_translate("repo_manager", "Project Path", None))
         self.pushButtonSave.setText(_translate("repo_manager", "Save", None))
         self.pushButtonDiscard.setText(_translate("repo_manager", "Discard", None))
 

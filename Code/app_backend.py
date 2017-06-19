@@ -1,6 +1,7 @@
 import time
 import datetime
 import glob
+import git
 from git_api_handler import handle_api_datas
 from requests_handler import *
 from email_handler import Email
@@ -197,63 +198,51 @@ class BackendGithub:
             # TODO log and email notification on error
 
     def report_stuffs(self):
-        # try:
-        # ------- CSV report handling --------
-        print "Creating a CSV report."
-        csv_file = CSV()
-        csv_file.get_report(self.report_csv_file_path, self.list_repo)
-        print "Finished generating a report."
+        try:
+            # ------- CSV report handling --------
+            print "Creating a CSV report."
+            csv_file = CSV()
+            csv_file.get_report(self.report_csv_file_path, self.list_repo)
+            print "Finished generating a report."
 
-        # --------- HTML Handling ------------ ##
-        htm = HTML(days_back)
-        print "Creating an HTML document."
-        html_report = htm.encode_html(self.list_repo)
-        print "Created an HTML document."
+            # --------- HTML Handling ------------ ##
+            htm = HTML(days_back)
+            print "Creating an HTML document."
+            html_report = htm.encode_html(self.list_repo)
+            print "Created an HTML document."
 
-        # Write HTML to a file for test and debug purpose
-        with open(self.report_html_file_name, "wb") as test_file:
-            test_file.write(html_report)
-            test_file.close()
+            # Write HTML to a file for test and debug purpose
+            with open(self.report_html_file_name, "wb") as test_file:
+                test_file.write(html_report)
+                test_file.close()
 
-        # ---- Create Source Monitor Report ----
-        # get_command_xml = MakeXMLSM(self.st_date_time)
-        # get_command_xml.set_command_xml()
-        # get_command_xml.gen_sm_report()
+            # --- Single file attachments ----
+            attach_file = "outputs/" + self.report_csv_file_name
+            print attach_file
 
-        # --------- Email Handling ------------
-        # attach_files = [None] * 3
-        # attach_files[0] = self.report_csv_file_name
+            mail = Email()
+            print "Sending email ..."
+            mail.email_report(attach_file, html_report)
+            print "Email sent."
+        except:
+            print "Sending email [error] ..."
+            error_mail = Email()
+            print "Email sent [error]."
+            error_mail.error_email()
+            # TODO maintain Log
+            pass
 
-        # --- Single file attachments ----
-        attach_file = "outputs/" + self.report_csv_file_name
-        print attach_file
-
-
-        # attach_files[1] = "Kiviat for ChkPoint_" + str(self.st_date_time.date().year) + "_" \
-        #                   + str(self.st_date_time.date().month).zfill(2) + "_" + str(self.st_date_time.date().day).zfill(2) + "T" \
-        #                   + str(self.st_date_time.time().hour) + "_" + str(self.st_date_time.time().minute) + "_" \
-        #                   + str(self.st_date_time.time().second) + ".bmp"
-        # print attach_files[1]
-        #
-        # attach_files[2] = "sm_report_" + str(self.st_date_time.date()) + "T" + str(self.st_date_time.time().hour) + "_" \
-        #                   + str(self.st_date_time.time().minute) + "_" + str(self.st_date_time.time().second) + ".csv"
-        #
-        # print attach_files[2]
-        mail = Email()
-        print "Sending email ..."
-        mail.email_report(attach_file, html_report)
-        print "Email sent."
-        # except:
-        #     print "Sending email [error] ..."
-        #     error_mail = Email()
-        #     print "Email sent [error]."
-        #     error_mail.error_email()
-        #     # TODO maintain Log
-        #     pass
+def is_git_repo(path):
+    try:
+        _ = git.Repo(path).git_dir
+        return True
+    except git.exc.InvalidGitRepositoryError:
+        return False
 
 # ------- Main Function --------- #
 def main():
 
+    # ------------- Read config file -------------------
     try:
         with open('config/config.json', 'rb') as ui_file:
             ui_file_raw = json.load(ui_file)
@@ -274,11 +263,48 @@ def main():
 
     # -------------- if the repository is local type --------------------
     else:
+
+        # ------------- Read dir_files -------------------
         try:
             with open('config/dir_list.json', 'rb') as dir_file:
                 raw_git_dirs = json.load(dir_file)
                 dir_file.close()
+        except:
+            pass
 
+        # ------------------------ Make Commits first ----------------------------
+        for dires in raw_git_dirs:
+            if not is_git_repo(dires):
+                try:
+                    git.Repo.init(dires, bare=False)
+                    print "Initialized repository : \'%s\'" % dires
+                except:
+                    print "Couldn't initialize repository : \'%s\'" % dires
+                pass
+            repo = git.Repo(dires)
+            index = repo.index
+            flag_successful_index = False
+            try:
+                print "Indexing items from \'%s\' working directory !" % dires
+                repo.git.add(A=True)
+                # repo.git.add(u=True)
+                flag_successful_index = True
+            except:
+                print "Error indexing : \'%s\'" % dires
+                pass
+            if flag_successful_index:
+                try:
+                    author = git.Actor('Temco Tech', 'tech_temco@outlook.com')
+                    committer = git.Actor('Temco Tech', 'tech_temco@outlook.com')
+                    # commit by commit message and author and committer
+                    index.commit("Auto commit by git report tool", author=author, committer=committer)
+                    print "Made commit on %s" % dires
+                except:
+                    print "Error commiting : %s" % dires
+                    pass
+            pass
+
+        try:
             git_dirs = []
             for dirs in raw_git_dirs:
                 if os.path.exists(dirs):
@@ -335,7 +361,6 @@ def main():
             # TODO maintain Log
             pass
     pass
-
 
 ''' -------------- Main function call : --------------- '''
 if __name__ == '__main__':

@@ -29,7 +29,7 @@
    </column>
    <column>
     <property name="text">
-     <string>Repository Path</string>
+     <string>Project Path</string>
     </property>
    </column>
   </widget>

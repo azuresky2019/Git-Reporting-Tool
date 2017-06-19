@@ -16,6 +16,7 @@ from UIGit import Ui_MainWindowGitUiI
 from repo_manage import Ui_repo_manager
 from about_ui import Ui_DialogAbout
 from error_dialogueUi import Ui_ErrorDialogue
+from config_ui import Ui_DialogConfRepo
 
 flag_done_scan = False
 
@@ -24,19 +25,9 @@ class gitDirThread(QtCore.QThread):
     def __init__(self, dir_backup):
         QtCore.QThread.__init__(self)
         self.init_path = str(dir_backup)
-        # print self.init_path
-        # self.thPause = False
-        # self.pauseStat = False
 
     def __del__(self):
         self.wait()
-
-    # def is_git_repo(self, dirt):
-    #     os.chdir(dirt)
-    #     if call(["git", "branch"], stderr=STDOUT, stdout=(os.devnull, 'w')) != 0:
-    #         return False
-    #     else:
-    #         return True
 
     def is_git_repo(self, path):
         try:
@@ -56,140 +47,135 @@ class gitDirThread(QtCore.QThread):
         path_now = os.getcwd()
         all_dirs = len(list_dirs)
 
-        # repoIndx = 0
-
         for repo in range(0, all_dirs):
-            # if not self.thPause:
 
-                # if self.pauseStat:
-                #     self.emit(QtCore.SIGNAL("pauseTh(bool)"), True)
+            last_dir_name = list_dirs[repo].split('\\')[-1]     # omit hidden directory
 
-            self.emit(QtCore.SIGNAL("inc_num(int)"), float(repo) / all_dirs * 100)
-            if self.is_git_repo(list_dirs[repo]):
+            if not last_dir_name[0] == '.':
                 self.emit(QtCore.SIGNAL("tbl_val(QString)"), list_dirs[repo])
-            # else:
-            #     repoIndx = repo
-            #     print repoIndx
-            #     break
-                pass
-        self.emit(QtCore.SIGNAL("inc_num(int)"), 100)
+                time.sleep(0.1)
+
+        # self.emit(QtCore.SIGNAL("inc_num(int)"), 100)
         self.emit(QtCore.SIGNAL("finished(bool)"), True)
         os.chdir(path_now)
 
 class RepoManager(QtGui.QDialog, QtGui.QWidget):
+
     def __init__(self, backup_dir):
         QtGui.QDialog.__init__(self, parent=None)
-        self.backup_dir = backup_dir
-        self.dialog_repoManager = Ui_repo_manager()
+
+        self.backup_dir = str(backup_dir)
+
+        self.dialog_repoManager = Ui_DialogConfRepo()
         self.dialog_repoManager.setupUi(self)
-        self.setFixedSize(472, 371)
+        self.setFixedSize(485, 526)
+
+        self.dialog_repoManager.pushButtonDiscard.setEnabled(False)
+        self.dialog_repoManager.pushButtonUpdate.setEnabled(False)
+
+        self.connect(self.dialog_repoManager.pushButtonUpdate, QtCore.SIGNAL("clicked()"), self.on_save)
+        self.connect(self.dialog_repoManager.pushButtonDiscard, QtCore.SIGNAL("clicked()"), self.close)
+
+        self.dialog_repoManager.tableWidgetMon.setRowCount(0)
+        self.dialog_repoManager.tableWidgetNewRepo.setRowCount(0)
+
+        try:
+            with open("config/dir_list.json", "rb") as dir_list_file:
+                self.current_dir_list = json.load(dir_list_file)
+                dir_list_file.close()
+
+            with open("config/config.json", "rb") as config_file:
+                self.savedConfig = json.load(config_file)
+                self.savedInitDir = self.savedConfig["bckup_dir"]
+                config_file.close()
+        except:
+            self.current_dir_list = []
+            self.savedInitDir = []
+            pass
 
         self.gitThread = gitDirThread(self.backup_dir)
         self.gitThread.start()
 
-        # self.connect(self.dialog_repoManager.pushButtonStop, QtCore.SIGNAL("clicked()"), self.stop_scan)
-        self.connect(self.dialog_repoManager.pushButtonSave, QtCore.SIGNAL("clicked()"), self.on_save)
-        self.connect(self.dialog_repoManager.pushButtonDiscard, QtCore.SIGNAL("clicked()"), self.on_discard)
-
         self.connect(self.gitThread, QtCore.SIGNAL("tbl_val(QString)"), self.draw_table)
-        self.dialog_repoManager.tableWidgetListRepo.setColumnCount(2)
-        self.dialog_repoManager.tableWidgetListRepo.setRowCount(0)
-
-        self.connect(self.gitThread, QtCore.SIGNAL("inc_num(int)"), self.rise_pgrs_bar)
 
         self.connect(self.gitThread, QtCore.SIGNAL("finished(bool)"), self.scan_finished)
 
-        # self.connect(self.gitThread, QtCore.SIGNAL("pauseTh(bool)"), self.thPause)
-        # self.emit(QtCore.SIGNAL("pauseTh(bool)"), True)
+    def draw_table(self, table_item):
+        if self.savedInitDir != self.backup_dir:
 
-    def draw_table(self, tble_item):
-        row_position = self.dialog_repoManager.tableWidgetListRepo.rowCount()
-        self.dialog_repoManager.tableWidgetListRepo.insertRow(row_position)
+            row_position = self.dialog_repoManager.tableWidgetMon.rowCount()
+            self.dialog_repoManager.tableWidgetMon.insertRow(row_position)
 
-        self.dialog_repoManager.tableWidgetListRepo.setColumnWidth(1, 430)
-        # self.dialog_repoManager.tableWidgetListRepo.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-        self.dialog_repoManager.tableWidgetListRepo.setItem(row_position, 1, QtGui.QTableWidgetItem(tble_item))
+            self.dialog_repoManager.tableWidgetMon.setColumnWidth(1, 430)
+            self.dialog_repoManager.tableWidgetMon.setItem(row_position, 1, QtGui.QTableWidgetItem(table_item))
 
-        checkItem = QtGui.QTableWidgetItem()
-        checkItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-        checkItem.setCheckState(Qt.Checked)
-        self.dialog_repoManager.tableWidgetListRepo.setItem(row_position, 0, checkItem)
-        self.dialog_repoManager.tableWidgetListRepo.setColumnWidth(0, 50)
+            checkItem = QtGui.QTableWidgetItem()
+            checkItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            checkItem.setCheckState(Qt.Checked)
+            self.dialog_repoManager.tableWidgetMon.setItem(row_position, 0, checkItem)
+            self.dialog_repoManager.tableWidgetMon.setColumnWidth(0, 50)
 
-    def rise_pgrs_bar(self, prgVal):
-        self.dialog_repoManager.progressBarScanning.setValue(prgVal)
-        pass
+        else:
+            if str(table_item) in self.current_dir_list:
+                row_position = self.dialog_repoManager.tableWidgetMon.rowCount()
+                self.dialog_repoManager.tableWidgetMon.insertRow(row_position)
 
-    # def thPause(self, thPauseEvnt):
-    #     self.gitThread.thPause = thPauseEvnt
-    #     self.gitThread.pauseStat = False
+                self.dialog_repoManager.tableWidgetMon.setColumnWidth(1, 430)
+                self.dialog_repoManager.tableWidgetMon.setItem(row_position, 1, QtGui.QTableWidgetItem(table_item))
+
+                checkItem = QtGui.QTableWidgetItem()
+                checkItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                checkItem.setCheckState(Qt.Checked)
+                self.dialog_repoManager.tableWidgetMon.setItem(row_position, 0, checkItem)
+                self.dialog_repoManager.tableWidgetMon.setColumnWidth(0, 50)
+
+            else:
+                row_position = self.dialog_repoManager.tableWidgetNewRepo.rowCount()
+                self.dialog_repoManager.tableWidgetNewRepo.insertRow(row_position)
+
+                self.dialog_repoManager.tableWidgetNewRepo.setColumnWidth(1, 430)
+                self.dialog_repoManager.tableWidgetNewRepo.setItem(row_position, 1, QtGui.QTableWidgetItem(table_item))
+
+                checkItem = QtGui.QTableWidgetItem()
+                checkItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                checkItem.setCheckState(Qt.Unchecked)
+                self.dialog_repoManager.tableWidgetNewRepo.setItem(row_position, 0, checkItem)
+                self.dialog_repoManager.tableWidgetNewRepo.setColumnWidth(0, 50)
+
+    # def rise_pgrs_bar(self, prgVal):
+    #     self.dialog_repoManager.progressBarScanning.setValue(prgVal)
     #     pass
-
-    # def stop_scan(self):
-        # print ("Thread Status", self.gitThread.isRunning())
-        # print ("pauseStat", self.gitThread.pauseStat)
-        # print ("thPause", self.gitThread.thPause)
-
-        # self.dialog_repoManager.pushButtonPause.setText("Resume")
-        # self.dialog_repoManager.pushButtonDiscard.setEnabled(True)
-
-        # if self.gitThread.isRunning():
-        # if self.gitThread.thPause:
-        #     self.dialog_repoManager.pushButtonStop.setText("Start")
-        #     self.dialog_repoManager.pushButtonDiscard.setEnabled(True)
-            # self.gitThread.pauseStat = False
-            # self.dialog_repoManager.tableWidgetListRepo.setRowCount(0)
-            # self.dialog_repoManager.tableWidgetListRepo.setColumnCount(0)
-            # self.gitThread.terminate()
-        # else:
-        #     self.dialog_repoManager.pushButtonStop.setText("Stop")
-        #     self.dialog_repoManager.pushButtonDiscard.setEnabled(False)
-        #     for i in reversed(range(self.dialog_repoManager.tableWidgetListRepo.rowCount())):
-        #         self.dialog_repoManager.tableWidgetListRepo.removeRow(i)
-        #     self.gitThread.start()
-        #     self.gitThread.pauseStat = False
-        #     pass
-        # print "Pressed Stop!"
 
     def scan_finished(self):
         print "Finished scanning !"
         self.gitThread.terminate()
         self.dialog_repoManager.pushButtonDiscard.setEnabled(True)
-        self.dialog_repoManager.pushButtonSave.setEnabled(True)
-        # self.dialog_repoManager.pushButtonStop.setEnabled(False)
-
+        self.dialog_repoManager.pushButtonUpdate.setEnabled(True)
 
     def on_save(self):
-        checked_dir_list = [None]
-        checked_dir_list_json = [None]
-        for i in range(self.dialog_repoManager.tableWidgetListRepo.rowCount()):
-            if self.dialog_repoManager.tableWidgetListRepo.item(i, 0).checkState() == Qt.Checked:
-                checked_dir_list.append((self.dialog_repoManager.tableWidgetListRepo.item(i, 1)).text())
+        checked_dir_list = []
+        for i in range(self.dialog_repoManager.tableWidgetMon.rowCount()):
+            if self.dialog_repoManager.tableWidgetMon.item(i, 0).checkState() == Qt.Checked:
+                checked_dir_list.append(str((self.dialog_repoManager.tableWidgetMon.item(i, 1)).text()))
 
-        for dir in range(0, len(checked_dir_list)):
-            if checked_dir_list[dir]:
-                checked_dir_list_json.append(str(checked_dir_list[dir]))
+        for i in range(self.dialog_repoManager.tableWidgetNewRepo.rowCount()):
+            if self.dialog_repoManager.tableWidgetNewRepo.item(i, 0).checkState() == Qt.Checked:
+                checked_dir_list.append(str((self.dialog_repoManager.tableWidgetNewRepo.item(i, 1)).text()))
 
-        del checked_dir_list_json[0]
+        # print json.dumps(checked_dir_list, indent=4)
+        # print len(checked_dir_list)
+
+        with open("config/dir_list.json", "wb") as dir_list_file:
+            json.dump(checked_dir_list, dir_list_file)
+            dir_list_file.close()
 
         del checked_dir_list
-
-        with open("config/dir_list.json", "w") as dir_list_file:
-            json.dump(checked_dir_list_json, dir_list_file)
-            dir_list_file.close()
-        del checked_dir_list_json
-
-        self.mainWindow = Main()
-        # self.mainWindow.ui.pushButtonScan.setEnabled(False)
-        # global flag_done_scan
-        # flag_done_scan = True
-
         self.emit(QtCore.SIGNAL("en_ok(bool)"), True)
 
-        self.close()
+        # print self.gitThread.isRunning()
+        # self.gitThread.terminate()
+        # print self.gitThread.isRunning()
 
-    def on_discard(self):
-        # self.mainWindow.ui.pushButtonOK.setEnabled(True)
         self.close()
         pass
 
@@ -242,8 +228,6 @@ class Main(QtGui.QMainWindow):
         self.connect_menu_action()
         self.init_form()
 
-        # self.ui.spinBoxHistory.setMaximum(30)
-
         self.connect(self.ui.radioButtonGithubTypeRepo, QtCore.SIGNAL("clicked()"), self.on_repotype_github)
         self.connect(self.ui.radioButtonLocalTypeRepo, QtCore.SIGNAL("clicked()"), self.on_repotype_local)
 
@@ -254,23 +238,18 @@ class Main(QtGui.QMainWindow):
 
         self.connect(self.ui.lineEditBackupDir, QtCore.SIGNAL("textChanged(QString)"), self.check_dir)
 
-        self.connect(self.ui.pushButtonScan, QtCore.SIGNAL("clicked()"), self.manage_repo)
+        self.connect(self.ui.pushButtonManageRepo, QtCore.SIGNAL("clicked()"), self.manage_repo)
 
-        # self.repoMangClass = RepoManager()
-
-
-        # self.ThreadQt = gitDirThread()
-
-        # self.emit(QtCore.SIGNAL("finished(bool)"), True)
-
+        self.ui.checkBoxMonday.setChecked(True) # Set monday checked initially
+        # self.connect(self.ui.pushButtonManageRepo, QtCore.SIGNAL("clicked()"), self.update_repo)
 
         self.check_dir()
 
     def check_dir(self):
         if self.ui.lineEditBackupDir.text() and ('\\' in self.ui.lineEditBackupDir.text() and (':' in self.ui.lineEditBackupDir.text())):
-            self.ui.pushButtonScan.setEnabled(True)
+            self.ui.pushButtonManageRepo.setEnabled(True)
         else:
-            self.ui.pushButtonScan.setEnabled(False)
+            self.ui.pushButtonManageRepo.setEnabled(False)
 
     def on_repotype_github(self):
         self.ui.labelUserName.setEnabled(True)
@@ -285,7 +264,7 @@ class Main(QtGui.QMainWindow):
         self.ui.groupBoxInitialBackup.setEnabled(False)
 
         self.ui.pushButtonOK.setEnabled(True)
-        self.ui.pushButtonScan.setEnabled(False)
+        self.ui.pushButtonManageRepo.setEnabled(False)
 
         self.flag_repotype_github = True
         pass
@@ -312,15 +291,13 @@ class Main(QtGui.QMainWindow):
     def on_init_dir_browse(self):
         self.init_backup_dir = QtGui.QFileDialog.getExistingDirectory(None,
                                                          'Select initial backup directory.',
-                                                         # 'C:\\', QtGui.QFileDialog.ShowDirsOnly)
-                                                         # "C:\Users\Admin", QtGui.QFileDialog.ShowDirsOnly)
                                                          '/', QtGui.QFileDialog.ShowDirsOnly)
         self.ui.lineEditBackupDir.setText(str(self.init_backup_dir))
         pass
 
     def connect_menu_action(self):
         self.ui.actionExit.triggered.connect(self.close)
-        # self.ui.actionManage_Repo.triggered.connect(self.manage_repo)
+        self.ui.actionManageRpo.triggered.connect(self.manage_repo)
         self.ui.actionManual.triggered.connect(self.on_manual)
         self.ui.actionAbout.triggered.connect(self.on_about)
         pass
@@ -490,29 +467,38 @@ class Main(QtGui.QMainWindow):
         self.if_no_days_set = 0
         if self.ui.checkBoxSunday.isChecked():
             self.week_days["Sunday"] = True
-            self.if_no_days_set += 1
+        else:
+            self.week_days["Sunday"] = False
+
         if self.ui.checkBoxMonday.isChecked():
             self.week_days["Monday"] = True
-            self.if_no_days_set += 1
+        else:
+            self.week_days["Monday"] = False
+
         if self.ui.checkBoxTuesday.isChecked():
             self.week_days["Tuesday"] = True
-            self.if_no_days_set += 1
+        else:
+            self.week_days["Tuesday"] = False
+
         if self.ui.checkBoxWed.isChecked():
             self.week_days["Wednesday"] = True
-            self.if_no_days_set += 1
+        else:
+            self.week_days["Wednesday"] = False
+
         if self.ui.checkBoxThursday.isChecked():
             self.week_days["Thursday"] = True
-            self.if_no_days_set += 1
+        else:
+            self.week_days["Thursday"] = False
+
         if self.ui.checkBoxFriday.isChecked():
             self.week_days["Friday"] = True
-            self.if_no_days_set += 1
+        else:
+            self.week_days["Friday"] = False
+
         if self.ui.checkBoxSat.isChecked():
             self.week_days["Saturday"] = True
-            self.if_no_days_set += 1
-
-        if not self.if_no_days_set:
-            self.ui.checkBoxMonday.setChecked(True)
-            self.week_days["Monday"] = True
+        else:
+            self.week_days["Saturday"] = False
 
         # -- Arrange app dir --------------------------
         app_file_to_run = "\\app_backend.exe"

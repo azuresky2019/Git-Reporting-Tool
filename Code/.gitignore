@@ -11,7 +11,7 @@ output_jsons/*.json
 
 ui/*.pyc
 
-build/app_backend/*.toc
 build/app_backend/*.*
 dist/*.*
 build/*.*
+build/mainGitUI/*.*

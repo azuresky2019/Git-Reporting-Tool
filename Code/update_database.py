@@ -1,4 +1,5 @@
 import git
+import json
 from tinydb import TinyDB, Query
 from pprint import pprint
 
@@ -39,7 +40,7 @@ class UpdateDb:
     def get_commit_data(self, commit, parent):
         list_file_info = []
         diffs = {
-            diff.a_path: diff for diff in commit.diff(parent)
+            diff.a_path: diff for diff in commit.diff(parent, create_patch=True)
         }
 
         for objpath, stats in commit.stats.files.items():
@@ -49,6 +50,7 @@ class UpdateDb:
 
             # If the path is not in the dictionary, it's because it was
             # renamed, so search through the b_paths for the current name.
+
             if not diff:
                 for diff in diffs.values():
                     if diff.b_path == self.repo_path and diff.renamed:
@@ -58,9 +60,12 @@ class UpdateDb:
                 "file": objpath,
                 "addition": stats["insertions"],
                 "deletion": stats["deletions"],
-                # "size": self.diff_size(diff),
-                # "type": self.diff_type(diff),
+                "size": self.diff_size(diff),
+                "type": self.diff_type(diff),
             }
+            # print (json.dumps(stats, indent=4))
+            # print "I'm Here!"
+            # print (json.dumps(dict_file_obj, indent=4))
             list_file_info.append(dict_file_obj)
         # ----- Dict: Single commit information ------
         dict_commit_info = {
@@ -74,15 +79,15 @@ class UpdateDb:
             # "date": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(commit.committed_date)),
             "files": list_file_info,
         }
-        # # print dir(commit)
-        # # print dir(commit.diff())
+        # print dir(commit)
+        # print dir(commit.diff())
         # print commit.diff.count
-        # pprint(commit, indent=4)
+        # print(commit, indent=4)
 
         del list_file_info
-        ''' # Debug 
-        print (json.dumps(dict_commit_info, indent=4))
-        '''
+        # Debug
+        # print (json.dumps(dict_commit_info, indent=4))
+
         return dict_commit_info
 
     def diff_size(self, diff):

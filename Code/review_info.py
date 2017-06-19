@@ -87,10 +87,11 @@ class Info_review(QtGui.QDialog, QtGui.QWidget):
 
         week = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
         count = 0
+        # print json.dumps(self.user_info_all["days"], indent=4)
+
         for days in range(0, len(week)):
             if self.user_info_all["days"][str(week[days])]:
                 count += 1
-            count_org = count
 
         self.dispString = "The report will be generated and sent on every: \n"
 

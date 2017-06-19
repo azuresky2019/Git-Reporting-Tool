@@ -356,20 +356,20 @@
    <widget class="QWidget" name="horizontalLayoutWidget_4">
     <property name="geometry">
      <rect>
-      <x>230</x>
+      <x>197</x>
       <y>384</y>
-      <width>241</width>
+      <width>281</width>
       <height>41</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayoutFinish">
      <item>
-      <widget class="QPushButton" name="pushButtonScan">
+      <widget class="QPushButton" name="pushButtonManageRepo">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="text">
-        <string>Scan</string>
+        <string>Manage Repo</string>
        </property>
       </widget>
      </item>
@@ -404,7 +404,7 @@
     <property name="title">
      <string/>
     </property>
-    <widget class="QLabel" name="labelDays">
+    <widget class="QLabel" name="labelDaysHistoryFront">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -455,6 +455,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionManageRpo"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -504,6 +505,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionManageRpo">
+   <property name="text">
+    <string>Manage Repo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
    </property>
   </action>
  </widget>
